@@ -1,1 +1,600 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Keuangan KWARAN Cibugel</title>
+      <link rel="manifest" href="manifest.json">
+   <link rel="icon" type="image/png" href="https://cdn.phototourl.com/free/2026-07-13-3c0fb133-900b-4c65-96d5-f9c0cf1f3eda.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background: #fdfaf6; }
+        .sidebar { transition: 0.3s; transform: translateX(-100%); z-index: 1000; }
+        .sidebar.active { transform: translateX(0); }
+        .glass-card { background: white; border-radius: 20px; box-shadow: 0 10px 25px -5px rgba(139, 92, 26, 0.05); border: 1px solid #f0e6d6; }
+        
+        #modal-bukti { 
+            display: none; 
+            position: fixed; 
+            inset: 0; 
+            background: rgba(0,0,0,0.9); 
+            z-index: 9999; 
+            justify-content: center; 
+            align-items: center; 
+            padding: 15px; 
+        }
+        #modal-bukti img { 
+            max-width: 100%; 
+            max-height: 80vh; 
+            border-radius: 12px; 
+            border: 3px solid white;
+        }
+        @media print {
+            body * { visibility: hidden; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="max-w-md mx-auto relative overflow-x-hidden">
+
+    <div id="modal-bukti" onclick="tutupModal()">
+        <div class="relative flex flex-col items-center" onclick="event.stopPropagation()">
+            <img id="img-modal" src="" alt="Bukti Transaksi">
+            <button onclick="tutupModal()" class="mt-4 bg-amber-700 text-white font-bold px-6 py-2 rounded-full">TUTUP GAMBAR</button>
+        </div>
+    </div>
+
+    <div id="sidebar" class="sidebar fixed inset-y-0 left-0 w-80 bg-stone-900 text-white p-6 shadow-2xl no-print">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-xl font-bold italic text-amber-400">KWARAN CIBUGEL</h2>
+            <button onclick="toggleSidebar()" class="text-2xl font-bold text-amber-400">&times;</button>
+        </div>
+        <nav class="space-y-4">
+            <a href="#" onclick="showPage('input')" class="block p-4 bg-stone-800 rounded-xl text-amber-300">✍️ Input Iuran Pangkalan</a>
+            <a href="#" onclick="cekLogin('pangkalan')" class="block p-4 hover:bg-stone-800 rounded-xl text-amber-100">🔒 Data Pangkalan </a>
+            <a href="#" onclick="cekLogin('keluar')" class="block p-4 hover:bg-stone-800 rounded-xl text-amber-100">🔒 Input Pengeluaran Kwaran</a>
+            <a href="#" onclick="cekLogin('rekap')" class="block p-4 hover:bg-stone-800 rounded-xl text-amber-400">🔒 Rekap & Cetak Laporan</a>
+            <hr class="border-stone-700">
+            <a href="#" onclick="location.reload()" class="block p-4 text-red-400">🚪 Logout</a>
+        </nav>
+    </div>
+
+    <header class="p-4 flex justify-between items-center bg-white border-b border-amber-100 sticky top-0 z-50 no-print">
+        <button onclick="toggleSidebar()" class="px-3 py-1.5 bg-amber-50 text-amber-800 font-bold rounded-lg text-lg">&#9776;</button>
+        <div class="flex items-center gap-2">
+            <img src="https://cdn.phototourl.com/free/2026-07-13-3c0fb133-900b-4c65-96d5-f9c0cf1f3eda.png" class="w-8 h-8 object-contain">
+            <span class="font-bold text-[20px] text-stone-800 tracking-wide text-center">KWARAN CIBUGEL</span>
+        </div>
+        <div class="h-2 w-2"></div> 
+    </header>
+
+    <main id="page-input" class="p-4 space-y-6 pb-24 no-print">       
+        <div class="glass-card p-6 bg-amber-800 text-white grid grid-cols-2 gap-4 divide-x divide-amber-600">
+            <div class="text-center">
+                <p class="text-[10px] opacity-80 uppercase tracking-widest">Jumlah Siswa</p>
+                <h1 id="live-siswa-display" class="text-2xl font-black mt-1">0</h1>
+            </div>
+            <div class="text-center">
+                <p class="text-[10px] opacity-80 uppercase tracking-widest">Total Iuran (<span id="factor-display">x250</span>)</p>
+                <h1 id="live-total-display" class="text-2xl font-black mt-1">Rp 0</h1>
+            </div>
+        </div>
+
+        <form id="paymentForm" class="space-y-4">
+            <div class="glass-card p-4 space-y-3">
+                <label class="text-[10px] font-bold text-amber-800 uppercase tracking-wider block mb-1">Identitas Setoran</label>
+                <select name="pangkalan" id="select-pangkalan-iuran" required onchange="sesuaikanKalkulasiPangkalan()" class="w-full p-3 bg-stone-50 border border-amber-200 rounded-xl font-bold text-stone-800 outline-none">
+                    <option value="">Memuat pangkalan...</option>
+                </select>
+                <div class="grid grid-cols-2 gap-2">
+                    <select name="bulan" class="p-3 bg-stone-50 border border-amber-200 rounded-xl text-stone-800">
+                        <option value="Januari">Januari</option><option value="Februari">Februari</option>
+                        <option value="Maret">Maret</option><option value="April">April</option>
+                        <option value="Mei">Mei</option><option value="Juni">Juni</option>
+                        <option value="Juli">Juli</option><option value="Agustus">Agustus</option>
+                        <option value="September">September</option><option value="Oktober">Oktober</option>
+                        <option value="November">November</option><option value="Desember">Desember</option>
+                    </select>
+                    <select name="tahun" class="p-3 bg-stone-50 border border-amber-200 rounded-xl text-stone-800">
+                        <option value="2026">2026</option><option value="2027">2027</option><option value="2028">2028</option><option value="2029">2029</option><option value="2030">2030</option><option value="2031">2031</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="glass-card p-4 space-y-3 text-sm">
+                <div class="flex justify-between items-center pb-2">
+                    <span class="text-stone-800 font-bold">Masukkan Jumlah Siswa :</span>
+                    <input type="number" name="jumlah_siswa" id="jumlah_siswa" oninput="updateKalkulator()" placeholder="0" required class="w-24 p-2 border border-amber-300 rounded text-center text-black font-black outline-none bg-amber-50 text-lg">
+                </div>
+            </div>
+
+            <input type="hidden" name="total_bayar" id="hidden-total" value="0">
+
+            <div class="glass-card p-4 text-center">
+                <input type="file" id="input-foto" accept="image/*" capture="camera" class="hidden">
+                <div onclick="document.getElementById('input-foto').click()" id="btn-upload-label" class="p-4 border-2 border-dashed border-amber-200 rounded-xl text-stone-400 cursor-pointer hover:bg-amber-50">
+                    <p class="text-xl text-amber-700 mb-1">📸</p>
+                    <p class="text-[10px] font-bold uppercase text-stone-600">Ambil Foto Struk/Bukti Pembayaran</p>
+                </div>
+                <div id="preview-container" class="hidden relative mt-2">
+                    <img id="img-preview" class="w-full h-40 object-cover rounded-xl border border-amber-300">
+                    <button type="button" onclick="hapusFoto('input-foto', 'preview-container', 'btn-upload-label')" class="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full text-xs">Hapus</button>
+                </div>
+            </div>
+
+            <button type="submit" id="btnSimpan" class="w-full bg-amber-800 text-white p-4 rounded-xl font-black shadow-lg uppercase tracking-wider hover:bg-amber-900">Simpan Data & Kirim WA</button>
+        </form>
+    </main>
+
+    <main id="page-pangkalan" class="hidden p-4 space-y-6 pb-24 no-print">
+        <h2 class="font-black text-xl uppercase text-stone-800 border-l-4 border-amber-700 pl-2">Data Pangkalan</h2>
+        <form id="pangkalanForm" class="space-y-4">
+            <div class="glass-card p-4 space-y-3">
+                <input type="text" name="nama_pangkalan" placeholder="Nama Pangkalan (Contoh: SDN 3 Cibugel)" required class="w-full p-3 bg-stone-50 border border-amber-200 rounded-xl">
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[10px] font-bold text-stone-500 block mb-1">Jml Siswa</label>
+                        <input type="number" id="pangkalan_siswa" placeholder="0" required oninput="hitungOtomatisPangkalan()" class="w-full p-3 bg-stone-50 border border-amber-200 rounded-xl font-bold">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-stone-500 block mb-1">Nominal / Siswa</label>
+                        <input type="number" id="pangkalan_nominal" placeholder="250" defaultValue="250" required oninput="hitungOtomatisPangkalan()" class="w-full p-3 bg-stone-50 border border-amber-200 rounded-xl font-bold">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-amber-800 block mb-1">Total Terhitung Otomatis</label>
+                    <div class="w-full p-3 bg-amber-50 border border-amber-200 rounded-xl font-black text-amber-900 text-lg" id="pangkalan_total_display">Rp 0</div>
+                </div>
+            </div>
+            <button type="submit" id="btnSimpanPangkalan" class="w-full bg-amber-800 text-white p-4 rounded-xl font-black shadow-lg uppercase">Simpan Pangkalan</button>
+        </form>
+
+        <hr class="border-amber-100">
+        <h3 class="font-bold text-sm text-stone-700 uppercase tracking-wider">Daftar Pangkalan Aktif</h3>
+        <div class="overflow-x-auto bg-white rounded-xl shadow-sm border border-amber-100">
+            <table class="w-full text-[10px]">
+                <thead>
+                    <tr class="bg-amber-50 text-stone-700">
+                        <th class="p-2 text-left">Nama Pangkalan</th>
+                        <th class="p-2 text-center">Siswa</th>
+                        <th class="p-2 text-right">Nominal</th>
+                        <th class="p-2 text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody id="table-pangkalan-master">
+                    <tr><td colspan="4" class="text-center p-3 italic text-stone-400">Memuat data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <main id="page-keluar" class="hidden p-4 space-y-6 pb-24 no-print">
+        <h2 class="font-black text-xl uppercase text-stone-800 border-l-4 border-amber-700 pl-2">Input Pengeluaran Kwaran</h2>
+        <form id="expenseForm" class="space-y-4">
+            <div class="glass-card p-4 space-y-3">
+                <input type="date" name="tgl_keluar" required class="w-full p-3 bg-stone-50 border border-amber-200 rounded-xl">
+                <input type="text" name="keperluan" placeholder="Keperluan / Keterangan Pengeluaran" required class="w-full p-3 bg-stone-50 border border-amber-200 rounded-xl">
+                <div class="relative">
+                    <span class="absolute left-3 top-3 font-bold text-stone-500">Rp</span>
+                    <input type="text" id="nominal_mask" placeholder="Nominal" required class="w-full p-3 pl-12 bg-stone-50 border border-amber-200 rounded-xl font-bold text-red-600">
+                    <input type="hidden" name="nominal" id="nominal_asli">
+                </div>
+                
+                <div class="text-center pt-2">
+                    <input type="file" id="foto-keluar" accept="image/*" capture="camera" class="hidden">
+                    <div onclick="document.getElementById('foto-keluar').click()" id="label-foto-keluar" class="p-4 border-2 border-dashed border-amber-200 rounded-xl text-stone-400 cursor-pointer">
+                        <p class="text-xl text-amber-700 mb-1">📸</p>
+                        <p class="text-[10px] font-bold uppercase text-stone-600">Ambil Foto Bukti Pengeluaran</p>
+                    </div>
+                    <div id="prev-keluar-container" class="hidden relative mt-2">
+                        <img id="prev-img-keluar" class="w-full h-40 object-cover rounded-xl border border-amber-300">
+                        <button type="button" onclick="hapusFoto('foto-keluar', 'prev-keluar-container', 'label-foto-keluar')" class="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full text-xs">Hapus</button>
+                    </div>
+                </div>
+            </div>
+            <button type="submit" id="btnSimpanKeluar" class="w-full bg-stone-800 text-white p-4 rounded-xl font-black shadow-lg uppercase">Catat Pengeluaran</button>
+        </form>
+
+        <hr class="border-amber-100">
+        <div class="overflow-x-auto bg-white rounded-xl shadow-sm border border-amber-100">
+            <table class="w-full text-[10px]">
+                <thead><tr class="bg-amber-50 text-stone-700"><th class="p-2 text-left">Tgl</th><th class="p-2 text-left">Keperluan</th><th class="p-2 text-right">Nominal</th></tr></thead>
+                <tbody id="table-pengeluaran-mini"></tbody>
+            </table>
+        </div>
+    </main>
+
+    <main id="page-rekap" class="hidden p-4 space-y-4 pb-24">
+        <div class="flex justify-between items-center no-print">
+            <h2 class="font-black text-xl uppercase text-stone-800">Rekap Keuangan</h2>
+            <button onclick="window.print()" class="bg-amber-800 text-white px-4 py-2 rounded-lg text-xs font-bold shadow">🖨️ CETAK</button>
+        </div>
+
+        <div class="glass-card p-4 mb-4 grid grid-cols-3 gap-2 no-print bg-amber-50/50">
+            <select id="filter-pangkalan" onchange="aplikasikanFilter()" class="p-2 border border-amber-200 rounded-lg text-[9px] font-bold text-stone-800 bg-white">
+                <option value="">Semua Pangkalan</option>
+            </select>
+            <select id="filter-bulan" onchange="aplikasikanFilter()" class="p-2 border border-amber-200 rounded-lg text-[9px] font-bold text-stone-800 bg-white">
+                <option value="">Semua Bulan</option>
+                <option>Januari</option><option>Februari</option><option>Maret</option><option>April</option>
+                <option>Mei</option><option>Juni</option><option>Juli</option><option>Agustus</option>
+                <option>September</option><option>Oktober</option><option>November</option><option>Desember</option>
+            </select>
+            <select id="filter-tahun" onchange="aplikasikanFilter()" class="p-2 border border-amber-200 rounded-lg text-[9px] font-bold text-stone-800 bg-white">
+                <option value="">Semua Tahun</option>
+                <option>2026</option><option>2027</option><option>2028</option><option>2029</option><option>2030</option><option>2031</option>
+            </select>
+        </div>
+
+        <div id="print-area">
+            <div class="text-center mb-4 border-b-2 border-stone-800 pb-2">
+                <h2 class="font-bold text-base uppercase leading-tight text-stone-900">Laporan Keuangan Kwartir Ranting<br>Kecamatan Cibugel</h2>
+                <p class="text-[9px] mt-1 text-stone-600">Filter: <span id="info-filter" class="font-bold uppercase text-amber-800">Semua Data</span></p>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 text-center text-[9px] mb-4">
+                <div class="bg-emerald-700 p-2 rounded text-white font-semibold"><b>IURAN MASUK</b><br><span id="rekap-masuk">Rp 0</span></div>
+                <div class="bg-rose-700 p-2 rounded text-white font-semibold"><b>TOTAL KELUAR</b><br><span id="rekap-keluar">Rp 0</span></div>
+                <div class="bg-stone-800 p-2 rounded text-white font-semibold"><b>SALDO KWARAN</b><br><span id="rekap-saldo">Rp 0</span></div>
+            </div>
+
+            <table class="w-full text-[9px] border-collapse border border-stone-800">
+                <thead>
+                    <tr class="bg-stone-100 uppercase text-stone-800">
+                        <th class="border border-stone-800 p-1">No</th>
+                        <th class="border border-stone-800 p-1">Tgl</th>
+                        <th class="border border-stone-800 p-1">Keterangan / Pangkalan</th>
+                        <th class="border border-stone-800 p-1">Masuk</th>
+                        <th class="border border-stone-800 p-1">Keluar</th>
+                        <th class="border border-stone-800 p-1 no-print">Bukti</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body-rekap"></tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+    // PASTIKAN PASTE URL DISINI UTUH TANPA SPASI SAMA SEKALI
+    const scriptURL = "https://script.google.com/macros/s/AKfycbzJ56teZmGVC_BxrfTod4wrGOeQ672ZNEBntHrwOMU_A8qCrCzf6gm_-ZCKOyIBPUkILA/exec"; 
+    const WA_BENDAHARA = "6285324607274"; 
+    const PIN_KWARAN = "456"; 
+    let NOMINAL_PER_SISWA = 250;
+    
+    let isLoggedIn = false;
+    let dataMaster = { iuran: [], pengeluaran: [], pangkalanMaster: [] };
+
+    window.addEventListener('DOMContentLoaded', () => {
+        muatDataAwal();
+    });
+
+    function toggleSidebar() { 
+        document.getElementById('sidebar').classList.toggle('active'); 
+    }
+
+    function showPage(page) {
+        document.querySelectorAll('main').forEach(m => m.classList.add('hidden'));
+        document.getElementById('page-' + page).classList.remove('hidden');
+        if(page === 'rekap') aplikasikanFilter();
+        if(page === 'keluar') updateTableKeluar();
+        if(page === 'pangkalan') perbaruiTabelPangkalanMaster();
+        document.getElementById('sidebar').classList.remove('active');
+    }
+
+    function cekLogin(target) {
+        if(isLoggedIn) return showPage(target);
+        const p = prompt("Masukkan PIN Bendahara Kwaran:");
+        if(p === PIN_KWARAN) { isLoggedIn = true; showPage(target); } else { alert("PIN Salah!"); }
+    }
+
+    // MEMUAT DATA AWAL & LANGSUNG MENGISI DROPDOWN FORM DAN FILTER
+    async function muatDataAwal() {
+        try {
+            console.log("Memulai fetch data dari Google Apps Script...");
+            const response = await fetch(scriptURL);
+            const data = await response.json();
+            
+            // Simpan data ke variabel lokal dataMaster
+            dataMaster = data; 
+            console.log("Data berhasil dimuat:", dataMaster);
+            
+            // JALANKAN pengisian pilihan pangkalan di form iuran dan filter rekap
+            bangunOpsiPangkalan();
+            
+        } catch (error) {
+            console.error("Gagal memuat data awal:", error);
+        }
+    }
+
+    // FUNGSI UTAMA UNTUK MENGISI DROPDOWN FILTER & FORM INPUT IURAN
+    function bangunOpsiPangkalan() {
+        const selectIuran = document.getElementById('select-pangkalan-iuran');
+        const filterPangkalan = document.getElementById('filter-pangkalan');
+        
+        if (selectIuran) selectIuran.innerHTML = '<option value="">Pilih Pangkalan...</option>';
+        if (filterPangkalan) filterPangkalan.innerHTML = '<option value="">Semua Pangkalan</option>';
+        
+        if (dataMaster.pangkalanMaster && dataMaster.pangkalanMaster.length > 0) {
+            dataMaster.pangkalanMaster.forEach(p => {
+                if (selectIuran) {
+                    selectIuran.innerHTML += `<option value="${p.nama}">${p.nama}</option>`;
+                }
+                if (filterPangkalan) {
+                    filterPangkalan.innerHTML += `<option value="${p.nama}">${p.nama}</option>`;
+                }
+            });
+            console.log("Dropdown pangkalan berhasil diisi.");
+        } else {
+            if (selectIuran) selectIuran.innerHTML = '<option value="">Belum ada data pangkalan</option>';
+            console.warn("Data master pangkalan kosong atau belum terisi di Google Sheets.");
+        }
+    }
+
+    function sesuaikanKalkulasiPangkalan() {
+        const selectedPangkalan = document.getElementById('select-pangkalan-iuran').value;
+        const pangkalanData = dataMaster.pangkalanMaster.find(p => p.nama === selectedPangkalan);
+        
+        if (pangkalanData) {
+            NOMINAL_PER_SISWA = parseInt(pangkalanData.nominal) || 250;
+            document.getElementById('jumlah_siswa').value = pangkalanData.siswa;
+            document.getElementById('factor-display').innerText = "x" + NOMINAL_PER_SISWA;
+        } else {
+            NOMINAL_PER_SISWA = 250;
+            document.getElementById('factor-display').innerText = "x250";
+        }
+        updateKalkulator();
+    }
+
+    function updateKalkulator() {
+        const jmlSiswa = parseInt(document.getElementById('jumlah_siswa').value) || 0;
+        const totalUang = jmlSiswa * NOMINAL_PER_SISWA;
+        
+        document.getElementById('live-siswa-display').innerText = jmlSiswa.toLocaleString('id-ID');
+        document.getElementById('live-total-display').innerText = "Rp " + totalUang.toLocaleString('id-ID');
+        document.getElementById('hidden-total').value = totalUang;
+    }
+
+    function hitungOtomatisPangkalan() {
+        const siswa = parseInt(document.getElementById('pangkalan_siswa').value) || 0;
+        const nominal = parseInt(document.getElementById('pangkalan_nominal').value) || 0;
+        document.getElementById('pangkalan_total_display').innerText = "Rp " + (siswa * nominal).toLocaleString('id-ID');
+    }
+
+    function perbaruiTabelPangkalanMaster() {
+        const tbody = document.getElementById('table-pangkalan-master');
+        if (!tbody) return;
+        tbody.innerHTML = "";
+        if(dataMaster.pangkalanMaster && dataMaster.pangkalanMaster.length > 0) {
+            dataMaster.pangkalanMaster.forEach(p => {
+                tbody.innerHTML += `<tr class="border-b">
+                    <td class="p-2 font-bold text-stone-800">${p.nama}</td>
+                    <td class="p-2 text-center">${parseInt(p.siswa).toLocaleString('id-ID')}</td>
+                    <td class="p-2 text-right">Rp${parseInt(p.nominal).toLocaleString('id-ID')}</td>
+                    <td class="p-2 text-right font-bold text-emerald-700">Rp${parseInt(p.total).toLocaleString('id-ID')}</td>
+                </tr>`;
+            });
+        } else {
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center p-3 text-stone-400">Belum ada pangkalan tersimpan.</td></tr>`;
+        }
+    }
+
+    document.getElementById('pangkalanForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btnSimpanPangkalan');
+        btn.disabled = true; btn.innerText = "MENYIMPAN...";
+        
+        const nama = this.nama_pangkalan.value;
+        const siswa = parseInt(document.getElementById('pangkalan_siswa').value) || 0;
+        const nominal = parseInt(document.getElementById('pangkalan_nominal').value) || 0;
+        const total = siswa * nominal;
+
+        fetch(scriptURL, {
+            method: 'POST', mode: 'no-cors',
+            body: JSON.stringify({
+                type: "TAMBAH_PANGKALAN", nama: nama, siswa: siswa, nominal: nominal, total: total
+            })
+        }).then(() => {
+            alert("Data Pangkalan Baru Berhasil Disimpan!");
+            location.reload();
+        }).catch(() => {
+            alert("Gagal menyimpan data.");
+            btn.disabled = false; btn.innerText = "Simpan Pangkalan";
+        });
+    });
+
+    document.getElementById('nominal_mask').addEventListener('input', function(e) {
+        let val = this.value.replace(/[^0-9]/g, '');
+        document.getElementById('nominal_asli').value = val;
+        this.value = val ? parseInt(val).toLocaleString('id-ID') : '';
+    });
+
+    function handlePreview(inputId, previewContId, imgId, labelId) {
+        const inputEl = document.getElementById(inputId);
+        if (!inputEl) return;
+        inputEl.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const r = new FileReader();
+                r.onload = (ex) => {
+                    document.getElementById(imgId).src = ex.target.result;
+                    document.getElementById(previewContId).classList.remove('hidden');
+                    document.getElementById(labelId).classList.add('hidden');
+                };
+                r.readAsDataURL(file);
+            }
+        });
+    }
+    handlePreview('input-foto', 'preview-container', 'img-preview', 'btn-upload-label');
+    handlePreview('foto-keluar', 'prev-keluar-container', 'prev-img-keluar', 'label-foto-keluar');
+
+    function hapusFoto(inputId, previewContId, labelId) {
+        document.getElementById(inputId).value = "";
+        document.getElementById(previewContId).classList.add('hidden');
+        document.getElementById(labelId).classList.remove('hidden');
+    }
+
+    function lihatBukti(url) {
+        if(!url || url === "-" || url.includes("Tidak ada foto")) return alert("Foto bukti tidak tersedia.");
+        const imgModal = document.getElementById('img-modal');
+        imgModal.src = "https://media.giphy.com/media/3o7tkksWUXQC47HI88/giphy.gif"; 
+        
+        let fileId = "";
+        if(url.includes("id=")) { fileId = url.split("id=")[1].split("&")[0]; } 
+        else if(url.includes("/d/")) { fileId = url.split("/d/")[1].split("/")[0]; }
+        const directUrl = fileId ? `https://drive.google.com/thumbnail?sz=w1000&id=${fileId}` : url;
+        
+        setTimeout(() => { imgModal.src = directUrl; }, 100);
+        document.getElementById('modal-bukti').style.display = 'flex';
+    }
+
+    function tutupModal() { document.getElementById('modal-bukti').style.display = 'none'; }
+
+    document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btnSimpan');
+        btn.disabled = true; btn.innerText = "MENYIMPAN DATA...";
+        
+        const fd = new FormData(e.target);
+        let base64 = "", type = "";
+        const fileInput = document.getElementById('input-foto');
+        if (fileInput && fileInput.files[0]) {
+            const r = new FileReader();
+            await new Promise(res => { 
+                r.onload=()=>{ base64=r.result.split(',')[1]; type=fileInput.files[0].type; res(); }; 
+                r.readAsDataURL(fileInput.files[0]); 
+            });
+        }
+
+        const tglSekarang = new Date().toLocaleDateString('id-ID');
+
+        fetch(scriptURL, {
+            method: 'POST', mode: 'no-cors',
+            body: JSON.stringify({
+                type: "IURAN", pangkalan: fd.get('pangkalan'), bulan: fd.get('bulan'), tahun: fd.get('tahun'),
+                siswa: fd.get('jumlah_siswa') || 0, tgl: tglSekarang,
+                total_bayar: document.getElementById('hidden-total').value,
+                base64: base64, fileType: type
+            })
+        }).then(() => {
+            alert("Data Berhasil Disimpan!");
+            const msg = `*IURAN KWARAN CIBUGEL*%0APangkalan: ${fd.get('pangkalan')}%0APeriode: ${fd.get('bulan')} ${fd.get('tahun')}%0AJjumlah Siswa: ${fd.get('jumlah_siswa')}%0ATotal Bayar: Rp${parseInt(document.getElementById('hidden-total').value).toLocaleString('id-ID')}`;
+            window.open(`https://api.whatsapp.com/send?phone=${WA_BENDAHARA}&text=${msg}`, '_blank');
+            location.reload();
+        }).catch(() => {
+            alert("Gagal terhubung ke Apps Script.");
+            btn.disabled = false; btn.innerText = "Simpan Data & Kirim WA";
+        });
+    });
+
+    document.getElementById('expenseForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btnSimpanKeluar');
+        btn.disabled = true; btn.innerText = "MENYIMPAN...";
+        const fd = new FormData(e.target);
+        let base64 = "", type = "";
+        const fileKeluar = document.getElementById('foto-keluar');
+        if (fileKeluar && fileKeluar.files[0]) {
+            const r = new FileReader();
+            await new Promise(res => { 
+                r.onload=()=>{ base64=r.result.split(',')[1]; type=fileKeluar.files[0].type; res(); }; 
+                r.readAsDataURL(fileKeluar.files[0]); 
+            });
+        }
+        fetch(scriptURL, {
+            method: 'POST', mode: 'no-cors',
+            body: JSON.stringify({
+                type: "PENGELUARAN", tgl: fd.get('tgl_keluar'), keperluan: fd.get('keperluan'), nominal: fd.get('nominal'),
+                base64: base64, fileType: type
+            })
+        }).then(() => { alert("Pengeluaran Berhasil Dicatat!"); location.reload(); });
+    });
+
+    function updateTableKeluar() {
+        const table = document.getElementById('table-pengeluaran-mini');
+        if (!table) return;
+        table.innerHTML = "<tr><td colspan='3' class='text-center p-2 italic text-stone-400'>Memuat data...</td></tr>";
+        fetch(scriptURL).then(r => r.json()).then(data => {
+            table.innerHTML = "";
+            if(data.pengeluaran && data.pengeluaran.length > 0) {
+                data.pengeluaran.slice(0,5).forEach(o => {
+                    table.innerHTML += `<tr class="border-b"><td class="p-2">${o.tgl}</td><td class="p-2">${o.keperluan}</td><td class="p-2 text-right font-bold text-red-600">Rp${parseInt(o.nominal).toLocaleString('id-ID')}</td></tr>`;
+                });
+            } else {
+                table.innerHTML = "<tr><td colspan='3' class='text-center p-2 text-stone-400'>Belum ada data pengeluaran.</td></tr>";
+            }
+        });
+    }
+
+    function aplikasikanFilter() {
+        const fPangkalan = document.getElementById('filter-pangkalan').value;
+        const fBulan = document.getElementById('filter-bulan').value;
+        const fTahun = document.getElementById('filter-tahun').value;
+        const tbody = document.getElementById('table-body-rekap');
+        const infoFilter = document.getElementById('info-filter');
+        
+        if (!tbody) return;
+        tbody.innerHTML = "<tr><td colspan='6' class='text-center p-4 italic text-stone-500'>Memuat data...</td></tr>";
+        
+        fetch(scriptURL).then(r => r.json()).then(data => {
+            dataMaster = data;
+            tbody.innerHTML = "";
+            let inT = 0, outT = 0, no = 1;
+
+            if (infoFilter) {
+                infoFilter.innerText = `${fPangkalan || 'Semua Pangkalan'} | ${fBulan || 'Semua Bulan'} | ${fTahun || 'Semua Tahun'}`;
+            }
+
+            if(dataMaster.iuran) {
+                dataMaster.iuran.forEach(i => {
+                    const cocokPangkalan = fPangkalan === "" || i.pangkalan === fPangkalan;
+                    const cocokBulan = fBulan === "" || i.bulan === fBulan;
+                    const cocokTahun = fTahun === "" || String(i.tahun) === fTahun;
+
+                    if (cocokPangkalan && cocokBulan && cocokTahun) {
+                        inT += parseInt(i.total || 0);
+                        tbody.innerHTML += `
+                        <tr class="text-stone-900">
+                            <td class="border border-stone-800 p-1 text-center">${no++}</td>
+                            <td class="border border-stone-800 p-1 text-center">${i.tgl}</td>
+                            <td class="border border-stone-800 p-1 font-semibold">Iuran: ${i.pangkalan} (${i.siswa} Siswa - ${i.bulan} ${i.tahun})</td>
+                            <td class="border border-stone-800 p-1 text-right text-emerald-700 font-bold">Rp${parseInt(i.total || 0).toLocaleString('id-ID')}</td>
+                            <td class="border border-stone-800 p-1 text-center">-</td>
+                            <td class="border border-stone-800 p-1 text-center no-print">
+                                <button onclick="lihatBukti('${i.bukti}')" class="text-amber-800 font-bold underline">LIHAT</button>
+                            </td>
+                        </tr>`;
+                    }
+                });
+            }
+
+            if(dataMaster.pengeluaran) {
+                dataMaster.pengeluaran.forEach(o => {
+                    outT += parseInt(o.nominal || 0);
+                    tbody.innerHTML += `
+                    <tr class="bg-rose-50/70 text-stone-900">
+                        <td class="border border-stone-800 p-1 text-center">${no++}</td>
+                        <td class="border border-stone-800 p-1 text-center">${o.tgl}</td>
+                        <td class="border border-stone-800 p-1 text-rose-900 font-medium italic">PENGELUARAN: ${o.keperluan}</td>
+                        <td class="border border-stone-800 p-1 text-center">-</td>
+                        <td class="border border-stone-800 p-1 text-right text-rose-600 font-bold">Rp${parseInt(o.nominal || 0).toLocaleString('id-ID')}</td>
+                        <td class="border border-stone-800 p-1 text-center no-print">
+                            <button onclick="lihatBukti('${o.bukti}')" class="text-amber-800 font-bold underline">LIHAT</button>
+                        </td>
+                    </tr>`;
+                });
+            }
+
+            document.getElementById('rekap-masuk').innerText = "Rp " + inT.toLocaleString('id-ID');
+            document.getElementById('rekap-keluar').innerText = "Rp " + outT.toLocaleString('id-ID');
+            document.getElementById('rekap-saldo').innerText = "Rp " + (inT - outT).toLocaleString('id-ID');
+        });
+    }
+</script>
+</body>
+</html>
 
