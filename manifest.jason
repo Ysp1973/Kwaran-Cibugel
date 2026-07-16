@@ -3,13 +3,13 @@
   "name": "Data Kwaran Cibugel",
   "icons": [
     {
-      "src": "https://cdn.phototourl.com/free/2026-07-13-3c0fb133-900b-4c65-96d5-f9c0cf1f3eda.png",
+      "src": "icon-192.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "https://cdn.phototourl.com/free/2026-07-13-3c0fb133-900b-4c65-96d5-f9c0cf1f3eda.png",
+      "src": "icon-192.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
