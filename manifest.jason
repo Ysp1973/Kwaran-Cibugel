@@ -1,15 +1,23 @@
 {
-  "name": "Admin Kwaran Cibugel",
   "short_name": "Kwaran Cibugel",
-  "start_url": "index.html",
-  "display": "standalone",
-  "background_color": "#f1f5f9",
-  "theme_color": "#0f172a",
+  "name": "Data Kwaran Cibugel",
   "icons": [
     {
       "src": "https://cdn.phototourl.com/free/2026-07-13-3c0fb133-900b-4c65-96d5-f9c0cf1f3eda.png",
+      "type": "image/png",
       "sizes": "192x192",
-      "type": "image/png"
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn.phototourl.com/free/2026-07-13-3c0fb133-900b-4c65-96d5-f9c0cf1f3eda.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
-  ]
+  ],
+  "start_url": "./index.html",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "display": "standalone",
+  "orientation": "portrait"
 }
